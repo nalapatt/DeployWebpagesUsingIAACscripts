@@ -1,0 +1,163 @@
+In this I will explain how I went about installing LAMP components and deploy a web page to a node machine using ansible scripts. I used Jenkins to create a 
+CI/CD pipeline, using GitHub as a repo to store the ansible scripts and the inventory files
+
+Writing Ansible Playbook to deploy LAMP Stack on a remote machine
+
+Create two vms on aws
+connect to master vm
+
+Install ansible in master
+sudo apt-get update
+sudo apt-get install software-properties-common
+sudo apt-add-repository ppa:ansible/ansible
+sudo apt-get update
+sudo apt-get install ansible
+
+command n in a MAC terminal to clone a terminal 
+connect to node vm using ssh commands   
+
+In the Master Node terminal
+ssh-keygen -t rsa (in the master vm)
+enter enter just accept the default filenames and directories
+this will give a public key id_rsa.pub ahd private key file id_rsa
+Copy the  master vm public key which is .ssh/id_rsa.pub file to the node .ssh/authorized_keys 
+cat .ssh/id_rsa.pub 
+select the whole key and Control C to copy  
+
+Go to the node VM terminal 
+rm .ssh/authorized_keys to remove the old key file 
+vi .ssh/authorized_keys and press i to insert, Ctrl V to paste the key from Master here and esc :wq to save and quit
+
+Go back to the master VM
+configure the localhost and remote hosts etc.
+sudo vi /etc/ansible/hosts
+insert press i 
+in the beginning add the following
+[testservers]
+xxx.xx.xx.xx  (Ipaddress of node, to find this go to node and type ifconfig the ip address will be displayed after inet: xxx.xx.xx.xx)
+esc :wq to save and quit
+
+Create these three files in the master VM if you are not using jenkins and github other skip and go down to the jenkins installation 
+
+First File : index.html
+
+
+<!doctype html>
+<html>
+         <font size="+12">This is bigger text.</font>
+  <head>
+    <title>            Ansible project!</title>
+  </head>
+  <body>
+    <p>         HA HA HA HA FIRST WEB PAGE   </body>
+</html>
+~              
+
+
+Second File :Deploy.yml
+
+
+---
+- name: copy
+  hosts: testservers
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
+    - name: "copy file"
+      copy: src=/home/ubuntu/index.html dest=/var/www/html/index.html
+~                                                                               
+~                                                                               
+~                          
+
+
+Third File :Lampstack.yml
+
+---
+- name: install apache & php & mysql
+  hosts: testservers
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
+     - name: "Install apache2"
+       package: name=apache2 state=present
+     - name: "Install apache2-php5"
+       package: name=apache2 state=present
+     - name: "Install php-cli"
+       package: name=php-cli state=present
+     - name: "Install php-mcrypt"
+       package: name=php-mcrypt state=present
+     - name: "Install php-gd"
+       package: name=php-gd state=present
+     - name: "Install php-mysql"
+       package: name=php-mysql state=present
+     - name: "Install php-mysqlserver"
+       package: name=php-mysql-server state=present
+
+
+
+Use these commands on your master VM
+Ansible-playbook lampstack.yml
+Go to the node ec2-xx-xxx-xx-xxx.compute-1.amazonaws.com
+You will see the apache server page
+
+Use this command to deploy the page
+Ansible-playbook deploy.yml
+Now you will see the ha ha first web page
+Hooray you have deployed your web page 
+
+
+If using a Jenkins CI/CD pipeline and Github as a repo
+On the Master Terminal
+Install Jenkins ( use CreatesMasterandSlaveInstancesinAWS/InstallJenkinsInAWSVM as a guide)
+
+Create a pipeline job
+Write this script 
+Use the pipeline syntax generator to get the code, 
+Ansible tool :the name of the ansible you gave in configuration
+Playbook file path in workspace:deploy.yml
+Inventory file path in workspace:dev.ini
+SSH connection credentials:add jenkins
+choose ssh username with private key
+id:private-key(anyname)
+description:deploy(anyname)
+username:nalapatt(anyname)
+private key choose enter directly
+add the aws key you downloaded to create your instance should be in the downloads folder:*.pem file, cat this file
+press add and copy and paste
+now save and then choose the ssh key you just created
+Disable the host SSH key check:check this box 
+save and then generate the script , copy this script and paste into the pipeline script
+
+
+
+use the github https://github.com/nalapatt/myapp-ansible.git
+this contains the dev.ini which has the node server defined (change it to your node VM Ip address), the index.html (which has your web page),
+the deploy.yml and the lampstack.yml
+
+pipeline {
+    agent any
+
+    stages {
+        
+        stage('Hello checkout') {
+            steps {
+                echo 'Hello checkout'
+                git 'https://github.com/nalapatt/myapp-ansible.git' ( I have the files on this github repo)
+            }
+        }
+        stage('Hello install lamp') {
+            steps {
+                echo 'Hello playbook'
+                ansiblePlaybook credentialsId: 'private-key', disableHostKeyChecking: true, installation: 'nansible', inventory: 'dev.ini', playbook: 'lampstack.yml'
+            }
+        }
+        stage('Hello deploy') {
+            steps {
+                echo 'Hello deploy'
+                ansiblePlaybook credentialsId: 'private-key', disableHostKeyChecking: true, installation: 'nansible', inventory: 'dev.ini', playbook: 'deploy.yml'
+            }
+        }
+    }
+}
