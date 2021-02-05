@@ -1,7 +1,7 @@
-In this I will explain how I went about installing LAMP components and deploy a web page to a node machine using ansible scripts. I used Jenkins to create a 
-CI/CD pipeline, using GitHub as a repo to store the ansible scripts and the inventory files
-
-Writing Ansible Playbook to deploy LAMP Stack on a remote machine
+In this I will explain how I went about installing LAMP components and deployed a simple web page to a node machine using ansible scripts. I used Jenkins to create a 
+CI/CD pipeline, using GitHub as a repo to store the ansible scripts and the inventory files, I used pipeline scripts to checkout the github repo, run the ansible
+playbooks to create the LAMP stack and to deploy the web page
+I used AWS to create 2 EC2 instances , one as a master and another as a node
 
 Create two vms on aws
 connect to master vm
@@ -13,8 +13,8 @@ sudo apt-add-repository ppa:ansible/ansible
 sudo apt-get update
 sudo apt-get install ansible
 
-command n in a MAC terminal to clone a terminal 
-connect to node vm using ssh commands   
+press command n in a MAC terminal to clone a terminal 
+connect to node vm in this terminal using ssh commands   
 
 In the Master Node terminal
 ssh-keygen -t rsa (in the master vm)
